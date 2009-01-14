@@ -1,0 +1,18 @@
+A simple implementation of Dictionary PT-EN using flex and state conditions.
+
+Must use:
+file < example
+
+where example is:
+<page>
+        <title>TITULO</title>
+        ...
+        <text ...>
+                ...
+                [[Categoria:CATEGORIA]]
+                ...
+                [[en:PALAVRA]]
+                ...
+        </text>
+</page>
+

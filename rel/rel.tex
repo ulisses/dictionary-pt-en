@@ -1,0 +1,273 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{graphicx}
+\usepackage{alltt}
+\usepackage[portuges]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage{color}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{multicol}
+
+\setlength{\textwidth}{16.5cm}
+\setlength{\textheight}{24cm}
+\setlength{\parindent}{1em}
+\setlength{\parskip}{0pt plus 1pt}
+\setlength{\oddsidemargin}{0cm}
+\setlength{\evensidemargin}{0cm}
+\setlength{\topmargin}{-1.1cm}
+\setlength{\headsep}{20pt}
+\setlength{\columnsep}{1.5pc}
+\setlength\columnseprule{.4pt}
+\setlength\premulticols{6\baselineskip}
+\pagestyle{fancy}
+
+\lstdefinelanguage{txt}
+{
+       basicstyle=\ttfamily\scriptsize,
+       showstringspaces=false,
+       numbers=left,
+       numberstyle=\tiny,
+       numberblanklines=true,
+       showspaces=false,
+       showtabs=false
+}
+\lstnewenvironment{code_xml}
+{\textbf{Código XML} \hspace{1cm} \hrulefill \lstset{language=txt}}
+{\hrule\smallskip}
+
+\lstnewenvironment{code_lex}
+{\textbf{Código Lex} \hspace{1cm} \hrulefill \lstset{language=txt}}
+{\hrule\smallskip}
+
+\title{\sf  Processamento de Linguagens \\
+\begin{tabular}{c}
+    \includegraphics[width=.1\textwidth]{stuff/uminho.jpg}
+    \includegraphics[width=.07\textwidth]{stuff/informatica.jpg}\\
+    {\small Universidade do Minho}, {\small LEI}\\
+    {\small Ano lectivo 2007/2008}\\
+    {\small Trabalho Prático N$º$1}\\
+\end{tabular}
+}
+\author{
+    {\small Luis Tiago Mascarenhas - 38172} \and
+    {\small Mário Ulisses Pires Araujo Costa - 43175} \and
+    {\small Vasco Almeida Ferreira - 43207}}
+\date{{\small \today}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Este trabalho foi realizado no âmbito da disciplina de Processamento de Linguagens.\\
+O intuito deste trabalho é demonstrar os conhecimentos obtidos sobre Expressões Regulares e a utilização do \textbf{Flex} como gerador de filtros de texto.
+\end{abstract}
+
+\tableofcontents
+
+\section{Introdu\c c\~ao}
+A partir de um documento \textbf{XML}, Wikipédia portuguesa, queremos extrair um dicionário PT-EN. Para isso utilizamos, como principais ferramentas:
+\begin{description}
+ \item[Flex] gerador de analisadores léxicos
+ \item[Expressões regulares] define padrões a ser usados para procurar palavras\\
+\end{description}
+
+\noindent O documento \textbf{XML} da Wikipédia portuguesa pode ser encontrado aqui:\\
+\textsf{http://pt.wikipedia.org/wiki/Wikipedia:Download}.
+\section{Descrição do Problema}
+Primeiramente temos que analisar estrutura do ficheiro do qual vamos extrair informação. Reparamos que o ficheiro em questão tinha a seguinte estrutura:\\
+\begin{code_xml}
+ <page>
+     ...
+ </page>
+ <page>
+     ...
+ </page>
+ <page>
+     ...
+ </page>
+ ...
+\end{code_xml}
+
+Cada tag \textsf{page} tem a seguinte estrutura:\\
+
+\begin{code_xml}
+  <page>
+    <title>Astronomia e astrofisica</title>
+    <id>221</id>
+    <revision>
+      <id>5613721</id>
+      <timestamp>2007-04-09T20:35:55Z</timestamp>
+      <contributor>
+        <username>Rei-bot</username>
+        <id>76240</id>
+      </contributor>
+      <comment>clean up  utilizando [[Wikipedia:AutoWikiBrowser|AWB]]</comment>
+      <text xml:space="preserve">#REDIRECT [[astronomia]]</text>
+    </revision>
+  </page>
+\end{code_xml}
+
+Nesta parte, para cada \textsf{page} queremos a \textsf{PalavraPT}.\\
+
+Fazendo um \textit{zoom} à secção \textsf{text} reparamos que aí poderíamos encontrar a respectiva palavra em Inglês e a respectiva categoria da página em que estamos:\\
+
+\begin{code_xml}
+  <text xml:space="preserve">...
+  ...
+  [[Categoria:CATEGORIA1]]
+  [[Categoria:CATEGORIA2]]
+  ...
+  [[Categoria:CATEGORIAn]]
+  ...
+  [[en:PalavraEN]]
+  ...
+  </text>
+\end{code_xml}
+
+Como reparamos que cada página pode ter várias categorias, nós lemos todas as categorias da página.\\
+
+Assim, nesta parte, para cada \textsf{page} queremos todas as \textbf{$CATEGORIA_i$}, $\forall_{1 \leq i \leq n}$ e a \textsf{PalavraEN}.
+
+\section{Decisões}
+Inicialmente começamos por fazer um analisador léxico bastante fraco. Reparamos que o ficheiro xml da Wikipédia que trabalhamos tinha páginas de Utilizadores, ou seja das pessoas que contribuem para a Wikipédia. E que estas não têm categoria nem têm tradução para inglês. Ora como de inicio estávamos a fazer um analisador bastante fraco, estávamos a pesquisar também nestas páginas.\\
+Logo de seguida reparamos também que haviam mais páginas deste género: ``páginas especiais`` que não nos interessavam de todo.\\
+Desta forma decidimos eliminar por completo a pesquisa em páginas com a seguinte estrutura:
+
+\begin{code_xml}
+  <page>
+    <title>["Wikipedia""Usuario""Discussao""Ajuda""Anexo""MediaWiki""Categoria"]:TituloPT</title>
+    <id>221</id>
+    <revision>
+      <id>5613721</id>
+      <timestamp>2007-04-09T20:35:55Z</timestamp>
+      <contributor>
+        <username>Rei-bot</username>
+        <id>76240</id>
+      </contributor>
+      <comment>clean up  utilizando [[Wikipedia:AutoWikiBrowser|AWB]]</comment>
+      <text xml:space="preserve">Texto</text>
+    </revision>
+  </page>
+\end{code_xml}
+
+Depois de nos apercebermos disto, pensamos em como poderíamos ''explicar`` de alguma forma a estrutura do nosso ficheiro \textbf{XML} ao \textbf{Lex}, decidimos assim usar \textbf{StartConditions}. Mesmo assim tínhamos alguns problemas com a analise léxica do ficheiro.\\
+
+Depois de trocar alguns e-mails com o Professor Pedro Henriques, decidimos usar \textbf{StartConditions} dentro de \textbf{StartConditions} para desta forma podermos ter um poder expressivo muito superior.
+
+\section{Desenho e implementação}
+Graças ao uso de \textbf{StartConditions} dentro de \textbf{StartConditions} conseguimos explicar ao \textbf{Lex} todo o nosso documento e o que pretendíamos fazer com este.\\
+
+Como o uso de \textbf{StartConditions} dentro de \textbf{StartConditions} já não pode ser feito como as \textbf{StartConditions} simples:
+
+\begin{code_lex}
+%x condicao
+%%
+...         BEGIN(condicao)
+<condicao>  qualquer_coisa
+...
+<condicao>  BEGIN(INITIAL)
+%%
+...
+\end{code_lex}
+
+Por causa do \textsf{$BEGIN(INITIAL)$} que vai sempre para o inicio de tudo, para o primeiro \textsf{BEGIN(condicao)}\\
+
+Descobrimos que o \textbf{Lex} tem uma solução apra este problema que é a \textsf{stack}, sobre a qual podemos fazer operações de \textsf{push (yy\_push\_stack(condition))} e \textsf{pop (yy\_pop\_stack())}\\
+
+Desta forma tivemos a seguinte solução apra o problema; que passamos a explicar de seguida:\\
+
+\begin{code_lex}
+%x PAGE TITLE TEXT CATEGORIA EN
+%option stack
+        #define MAX 100
+        #include <stdlib.h>
+        #include <string.h>
+
+        void limpa();
+        void imprime();
+
+        int i = 0, nrAutores=0;
+        char *cat[MAX], *pt=NULL,*en=NULL, *new_cat[MAX];
+anything .|[\n\t\r]
+naoPagina ["Wikipedia""Usuario""Discussao""Ajuda""Anexo""MediaWiki""Categoria"]
+%%
+"<page>"                        yy_push_state(PAGE);
+<PAGE>{
+        "<title>"{naoPagina}    yy_pop_state(); // not a valid page
+        "<title>"               yy_push_state(TITLE);
+        "<text"[^>]+">"         yy_push_state(TEXT);
+        "</page>"               yy_pop_state();
+        {anything}              /* do nothing */
+}
+
+<TEXT>{
+        "[["[cC]"ategoria:"     yy_push_state(CATEGORIA);
+        "[[en:"                 yy_push_state(EN);
+        "</text>"               yy_pop_state();
+        {anything}              /* do nothing */
+}
+
+<TITLE>{
+        [^<]+                   {
+                                        i=0;
+                                        imprime(); limpa();
+                                        pt=NULL; en=NULL;
+                                        pt=strdup(yytext);
+                                }
+        "</title>"              yy_pop_state();
+        {anything}              /* do nothing */
+}
+
+<EN>{
+        [^\]]+                  en=strdup(yytext);
+        [\]]+                   yy_pop_state();
+        "]"\n{anything}         /* do nothing */
+}
+
+<CATEGORIA>{
+        [ \#\!\*\|]+            yy_pop_state();
+        [^\]\|\n]+              {
+                                        cat[i]=strdup(yytext);
+                                        i++;
+                                }
+        [\]]+                   yy_pop_state();
+        "]"\n{anything}         /* do nothing */
+}
+{anything}                      /* do nothing */
+%%
+void limpa()
+        {
+                int j;
+                for(j=0 ; cat[j]!=NULL ; j++)
+                        cat[j]=NULL;
+                for(j=0 ; new_cat[j]!=NULL ; j++)
+                        new_cat[j]=NULL;
+                return;
+        }
+
+void imprime() {
+                int j=0;
+
+                if(cat[0]!=NULL && pt!=NULL && en!=NULL)
+                {
+                        printf("PT - %s\nEN - %s\n",pt,en);
+                        printf("Categoria - %s\n",cat[j]);
+
+                        for(j++ ; cat[j]!=NULL ; j++)
+                                printf("            %s\n",cat[j]);
+                        puts("");
+                }
+        }
+
+int main() {
+        yylex();
+        return 0;
+}
+
+\end{code_lex}
+
+\section{Conclusão}
+Graças a este trabalho conseguimos cimentar correctamente todos os conteúdos leccionados até à data na cadeira de PL.\\
+Ganhamos maior flexibilidade em usar o \textbf{Flex} e \textbf{Expressões Regulares} e em processar textos.
+
+\end{document}
