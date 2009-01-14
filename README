@@ -1,18 +1,7 @@
 A simple implementation of Dictionary PT-EN using flex and state conditions.
 
-Must use:
-file < example
+The example.xml can be found here:
+http://pt.wikipedia.org/wiki/Wikipedia:Download
 
-where example is:
-<page>
-        <title>TITULO</title>
-        ...
-        <text ...>
-                ...
-                [[Categoria:CATEGORIA]]
-                ...
-                [[en:PALAVRA]]
-                ...
-        </text>
-</page>
-
+And you must use:
+user@path$ file < example.xml
